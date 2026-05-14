@@ -85,11 +85,27 @@ def format_full_analysis(analysis: dict, symbol: str = "BTC/USDT") -> str:
     trend_i = _trend_icon(daily["trend"])
     dir_i   = _dir_icon(sig["direction"])
 
+    # 進場決策摘要（用於標頭）
+    if sig["risk_too_high"]:
+        decision_line = f"⛔ 風險過高，此次不做"
+    elif sig["has_signal"] and sig["sl"] and sig["tp1"]:
+        sl_diff  = abs(price - sig["sl"])
+        tp1_diff = abs(price - sig["tp1"])
+        decision_line = (
+            f"{dir_i} {_dir_tw(sig['direction'])}｜"
+            f"進場 {_p(sig['entry'])}｜"
+            f"止損 {_p(sig['sl'])} ({_pct(sig['sl_pct'])})｜"
+            f"止盈 {_p(sig['tp1'])} ({_pct(sig['tp1_pct'])})｜"
+            f"R:R 1:{sig['rr1']:.1f}"
+        )
+    else:
+        decision_line = f"⏸ 條件未達，此次不做（SOP {sig['score']}/9）"
+
     lines = [
         f"━━━━━━━━━━━━━━━━━━━━",
-        f"📊 *{symbol} 價格行為分析*",
-        f"⏰ {_now()}（台灣時間）",
+        f"📊 *{symbol}*",
         f"💰 現價 *{_p(price)}*　{trend_i} {_trend_tw(daily['trend'])}",
+        decision_line,
         f"━━━━━━━━━━━━━━━━━━━━",
         f"",
         f"*SOP 檢查 {sig['score']}/9*",
@@ -130,40 +146,7 @@ def format_full_analysis(analysis: dict, symbol: str = "BTC/USDT") -> str:
         f"1H　{_trend_tw(tf1h['trend'])}｜{_bos_short(tf1h['bos'])}",
         f"15m {_pat_tw(tf15m['pattern'])}　5m {_pat_tw(tf5m['pattern'])}",
         f"流動性　{hunt['desc']}",
-        f"",
     ]
-
-    # 進場決策
-    lines.append("*─ 進場決策 ─*")
-
-    if sig["risk_too_high"]:
-        lines += [
-            f"",
-            f"⛔ *此次不做*",
-            f"原因：{sig['skip_reason']}",
-            f"建議：等待回調至更近的進場位",
-        ]
-    elif sig["has_signal"] and sig["sl"] and sig["tp1"]:
-        sl_diff  = abs(price - sig["sl"])
-        tp1_diff = abs(price - sig["tp1"])
-        lines += [
-            f"",
-            f"{dir_i} *{_dir_tw(sig['direction'])}信號*",
-            f"",
-            f"進場　*{_p(sig['entry'])}*",
-            f"止損　*{_p(sig['sl'])}*　{'▲' if sig['sl'] > price else '▼'}{_p(sl_diff)} ({_pct(sig['sl_pct'])})",
-            f"止盈　*{_p(sig['tp1'])}*　{'▲' if sig['tp1'] > price else '▼'}{_p(tp1_diff)} ({_pct(sig['tp1_pct'])}) 　R:R *1:{sig['rr1']:.1f}*",
-        ]
-    else:
-        missing = [label for (key, label), (ok, _) in
-                   zip(sop_rows, [sop.get(k, (False, "")) for k, _ in sop_rows])
-                   if not ok]
-        lines += [
-            f"",
-            f"⏸ *此次不做*",
-            f"未達條件：{' / '.join(missing[:3]) if missing else '綜合評估不足'}",
-            f"評分 {sig['score']}/9，需 ≥ 6 且 R:R ≥ 1:2",
-        ]
 
     lines += [
         f"",
@@ -189,16 +172,11 @@ def format_signal_alert(analysis: dict, symbol: str = "BTC/USDT") -> str:
     tp1_diff = abs(price - sig["tp1"])
 
     lines = [
-        f"🚨 *{symbol} 進場信號*",
-        f"⏰ {_now()}（台灣時間）",
+        f"🚨 *{symbol}*",
+        f"💰 現價 *{_p(price)}*　{_trend_icon(daily['trend'])} {_trend_tw(daily['trend'])}",
+        f"{dir_i} {_dir_tw(sig['direction'])}｜進場 {_p(price)}｜止損 {_p(sig['sl'])} ({_pct(sig['sl_pct'])})｜止盈 {_p(sig['tp1'])} ({_pct(sig['tp1_pct'])})｜R:R 1:{sig['rr1']:.1f}",
         f"━━━━━━━━━━━━━━━━━━━━",
-        f"{dir_i} *{_dir_tw(sig['direction'])}*　SOP {sig['score']}/9",
-        f"",
-        f"進場　*{_p(price)}*",
-        f"止損　*{_p(sig['sl'])}*　{'▲' if sig['sl'] > price else '▼'}{_p(sl_diff)} ({_pct(sig['sl_pct'])})",
-        f"止盈　*{_p(sig['tp1'])}*　{'▲' if sig['tp1'] > price else '▼'}{_p(tp1_diff)} ({_pct(sig['tp1_pct'])})　R:R *1:{sig['rr1']:.1f}*",
-        f"",
-        f"止損 1R → 止盈 {sig['rr1']:.1f}R ✅",
+        f"SOP {sig['score']}/9",
         f"",
         f"*市場背景*",
         f"日線 {_trend_icon(daily['trend'])} {_trend_tw(daily['trend'])}　位置 {_zone_tw(daily['zone'])}",
@@ -243,15 +221,13 @@ def format_risk_skip(analysis: dict, symbol: str = "BTC/USDT") -> str:
     daily = analysis["daily"]
 
     lines = [
-        f"⛔ *{symbol} 風險過高，此次不做*",
-        f"⏰ {_now()}（台灣時間）",
-        f"━━━━━━━━━━━━━━━━━━━━",
+        f"⛔ *{symbol}*",
         f"💰 {_p(price)}　{_trend_icon(daily['trend'])} {_trend_tw(daily['trend'])}",
-        f"",
+        f"風險過高，此次不做（SOP {sig['score']}/9）",
+        f"━━━━━━━━━━━━━━━━━━━━",
         f"原因：{sig['skip_reason']}",
-        f"",
-        f"方向偏向：{_dir_tw(sig['direction'])}（SOP {sig['score']}/9）",
-        f"止損位：{_p(sig['sl'])}（距離 {_pct(sig['sl_pct'])}，超過上限 2.5%）",
+        f"方向偏向：{_dir_tw(sig['direction'])}",
+        f"止損距離：{_pct(sig['sl_pct'])}，超過上限 2.5%",
         f"",
         f"建議：等待回調後在更近位置重新評估",
         f"━━━━━━━━━━━━━━━━━━━━",
