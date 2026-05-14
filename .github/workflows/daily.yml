@@ -1,4 +1,4 @@
-name: BTC Daily Report (每日 08:00 台灣時間)
+name: Crypto Daily Report - BTC / ETH / DOGE (每日 08:00 台灣時間)
 
 on:
   schedule:

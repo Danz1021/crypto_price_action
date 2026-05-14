@@ -1,4 +1,4 @@
-name: BTC Signal Scan (每 15 分鐘)
+name: Crypto Signal Scan - BTC / ETH / DOGE (每 15 分鐘)
 
 on:
   schedule:
