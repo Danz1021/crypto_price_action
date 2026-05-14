@@ -15,7 +15,14 @@ def _now() -> str:
     return datetime.now(TWN).strftime("%m/%d %H:%M")
 
 def _p(v) -> str:
-    return f"${v:,.0f}" if v is not None else "—"
+    if v is None:
+        return "—"
+    if v >= 1000:
+        return f"${v:,.2f}"
+    elif v >= 1:
+        return f"${v:.4f}"
+    else:
+        return f"${v:.6f}"
 
 def _pct(v: float, sign: bool = False) -> str:
     s = "+" if sign and v > 0 else ("-" if sign and v < 0 else "")

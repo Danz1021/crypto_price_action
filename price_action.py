@@ -366,7 +366,14 @@ def _trend_label(t: str) -> str:
             "RANGING": "盤整橫盤"}.get(t, t)
 
 def _p(v) -> str:
-    return f"${v:,.0f}" if v else "—"
+    if not v:
+        return "—"
+    if v >= 1000:
+        return f"${v:,.2f}"
+    elif v >= 1:
+        return f"${v:.4f}"
+    else:
+        return f"${v:.6f}"
 
 def _pat(p) -> str:
     m = {"BULLISH_PIN_BAR": "看多針棒", "BEARISH_PIN_BAR": "看空針棒",
