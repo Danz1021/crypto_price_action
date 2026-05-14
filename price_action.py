@@ -208,10 +208,10 @@ class PriceActionAnalyzer:
                                  f"阻力 {_p(daily['nearest_resistance'])} | 支撐 {_p(daily['nearest_support'])}")
 
         best_zone = daily["demand_zone"] if direction == "LONG" else daily["supply_zone"]
+        zone_label = "需求區" if direction == "LONG" else "供給區"
         sop_checks["zone"] = (best_zone is not None,
-                               f"{best_zone['type'] if best_zone else '未偵測到'}" +
-                               (f" {_p(best_zone['bottom'])}–{_p(best_zone['top'])} [{best_zone['quality']}]"
-                                if best_zone else ""))
+                               (f"{zone_label} {_p(best_zone['bottom'])}–{_p(best_zone['top'])} [{best_zone['quality']}]"
+                                if best_zone else "未偵測到"))
 
         mid_ok = (tf4h["aligned"] or tf1h["aligned"]) and \
                  (tf4h["bos"] is not None or tf1h["bos"] is not None)

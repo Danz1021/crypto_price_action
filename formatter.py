@@ -64,7 +64,7 @@ def _bos_short(bos: Optional[dict]) -> str:
 # 完整日線報告
 # ─────────────────────────────────────────────
 
-def format_full_analysis(analysis: dict) -> str:
+def format_full_analysis(analysis: dict, symbol: str = "BTC/USDT") -> str:
     daily = analysis["daily"]
     tf4h  = analysis["tf4h"]
     tf1h  = analysis["tf1h"]
@@ -80,7 +80,7 @@ def format_full_analysis(analysis: dict) -> str:
 
     lines = [
         f"━━━━━━━━━━━━━━━━━━━━",
-        f"📊 *BTC/USDT 價格行為分析*",
+        f"📊 *{symbol} 價格行為分析*",
         f"⏰ {_now()}（台灣時間）",
         f"💰 現價 *{_p(price)}*　{trend_i} {_trend_tw(daily['trend'])}",
         f"━━━━━━━━━━━━━━━━━━━━",
@@ -171,7 +171,7 @@ def format_full_analysis(analysis: dict) -> str:
 # 強信號 Alert（15m 掃描觸發）
 # ─────────────────────────────────────────────
 
-def format_signal_alert(analysis: dict) -> str:
+def format_signal_alert(analysis: dict, symbol: str = "BTC/USDT") -> str:
     sig   = analysis["signal"]
     daily = analysis["daily"]
     price = analysis["current_price"]
@@ -182,7 +182,7 @@ def format_signal_alert(analysis: dict) -> str:
     tp1_diff = abs(price - sig["tp1"])
 
     lines = [
-        f"🚨 *BTC 進場信號*",
+        f"🚨 *{symbol} 進場信號*",
         f"⏰ {_now()}（台灣時間）",
         f"━━━━━━━━━━━━━━━━━━━━",
         f"{dir_i} *{_dir_tw(sig['direction'])}*　SOP {sig['score']}/9",
@@ -230,13 +230,13 @@ def format_signal_alert(analysis: dict) -> str:
 # 風險過高通知
 # ─────────────────────────────────────────────
 
-def format_risk_skip(analysis: dict) -> str:
+def format_risk_skip(analysis: dict, symbol: str = "BTC/USDT") -> str:
     sig   = analysis["signal"]
     price = analysis["current_price"]
     daily = analysis["daily"]
 
     lines = [
-        f"⛔ *風險過高，此次不做*",
+        f"⛔ *{symbol} 風險過高，此次不做*",
         f"⏰ {_now()}（台灣時間）",
         f"━━━━━━━━━━━━━━━━━━━━",
         f"💰 {_p(price)}　{_trend_icon(daily['trend'])} {_trend_tw(daily['trend'])}",

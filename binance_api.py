@@ -19,15 +19,13 @@ _INTERVAL_MAP = {
     "5m":  5,
 }
 
-KRAKEN_SYMBOL = "XBTUSD"   # Kraken 用 XBT 代替 BTC
-
-
 class BinanceAPI:
     """Kraken 公開 REST API 封裝，無需 API Key，無地區限制"""
 
-    def __init__(self, base_url: str, symbol: str):
-        self.base_url = base_url
-        self.symbol   = symbol
+    def __init__(self, base_url: str, kraken_pair: str, display: str = ""):
+        self.base_url    = base_url
+        self.kraken_pair = kraken_pair   # Kraken pair（如 XBTUSD、ETHUSD）
+        self.display     = display       # 顯示名稱（如 BTC/USDT）
         self.session  = requests.Session()
         self.session.headers.update({"Accept": "application/json"})
 
@@ -40,7 +38,7 @@ class BinanceAPI:
         kraken_interval = _INTERVAL_MAP.get(interval, 60)
         url    = f"{self.base_url}/0/public/OHLC"
         params = {
-            "pair":     KRAKEN_SYMBOL,
+            "pair":     self.kraken_pair,
             "interval": kraken_interval,
         }
 
@@ -66,12 +64,12 @@ class BinanceAPI:
                 if attempt < 2:
                     time.sleep(2 ** attempt)
 
-        raise RuntimeError(f"Failed to fetch klines for {self.symbol} {interval}")
+        raise RuntimeError(f"Failed to fetch klines for {self.kraken_pair} {interval}")
 
     def get_current_price(self) -> float:
         """取得最新成交價"""
         url  = f"{self.base_url}/0/public/Ticker"
-        resp = self.session.get(url, params={"pair": KRAKEN_SYMBOL}, timeout=10)
+        resp = self.session.get(url, params={"pair": self.kraken_pair}, timeout=10)
         resp.raise_for_status()
         data = resp.json()
         # 'c' = [price, lot_volume]，key 動態取得

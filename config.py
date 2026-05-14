@@ -8,8 +8,14 @@ import os
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 CHAT_ID        = os.environ.get("CHAT_ID", "")
 
-SYMBOL        = "BTCUSDT"
 EXCHANGE_BASE = "https://api.kraken.com"
+
+# 掃描標的列表（display：顯示名稱，kraken_pair：Kraken API pair）
+SYMBOLS = [
+    {"display": "BTC/USDT",  "kraken_pair": "XBTUSD"},
+    {"display": "ETH/USDT",  "kraken_pair": "ETHUSD"},
+    {"display": "DOGE/USDT", "kraken_pair": "DOGEUSD"},
+]
 
 # 時間框架
 TF_DAILY = "1d"

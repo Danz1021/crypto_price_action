@@ -16,6 +16,7 @@ class TelegramBot:
         self.base    = f"https://api.telegram.org/bot{token}"
 
     def send_message(self, text: str, parse_mode: str = "Markdown") -> bool:
+        # Markdown 模式下底線會被誤解析，先嘗試 Markdown，失敗自動降級為純文字
         url = f"{self.base}/sendMessage"
         payload = {
             "chat_id":    self.chat_id,
@@ -26,6 +27,10 @@ class TelegramBot:
             resp = requests.post(url, json=payload, timeout=15)
             data = resp.json()
             if not data.get("ok"):
+                # Markdown 解析失敗時降級為純文字重試
+                if parse_mode and "parse entities" in data.get("description", ""):
+                    logger.warning("Markdown parse error, retrying as plain text")
+                    return self.send_message(text, parse_mode="")
                 logger.error("Telegram send failed: %s", data)
                 return False
             logger.info("Telegram message sent (msg_id=%s)", data["result"]["message_id"])
