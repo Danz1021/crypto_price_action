@@ -1,0 +1,30 @@
+name: BTC Signal Scan (每 15 分鐘)
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'   # 每 15 分鐘執行一次
+  workflow_dispatch:           # 允許手動觸發（測試用）
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run signal scan
+        run: python main.py
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}

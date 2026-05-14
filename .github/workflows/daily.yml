@@ -1,0 +1,30 @@
+name: BTC Daily Report (每日 08:00 台灣時間)
+
+on:
+  schedule:
+    - cron: '0 0 * * *'   # 00:00 UTC = 08:00 台灣時間
+  workflow_dispatch:        # 允許手動觸發（測試用）
+
+jobs:
+  daily:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Send daily report
+        run: python main.py --daily
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
