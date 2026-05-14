@@ -267,7 +267,7 @@ class PriceActionAnalyzer:
 
         # ── 最終評分 ─────────────────────────────
         score      = sum(1 for v, _ in sop_checks.values() if v)
-        has_signal = (score >= 6 and direction != "NEUTRAL" and
+        has_signal = (score == 9 and direction != "NEUTRAL" and
                       sl_price is not None and tp1 is not None and
                       rr_ok and not risk_too_high)
 
@@ -332,31 +332,52 @@ class PriceActionAnalyzer:
     def _calc_tp(self, price: float, direction: str,
                  risk: float, daily: dict) -> tuple[Optional[float], Optional[float]]:
         """
-        TP 固定鎖在 2R（不追遠區間，避免持倉時間過長）。
-        供需區只做「是否有阻礙」的參考：
-          - 若下一供需區在 2R 之前，則提前在區前 0.1% 離場（縮短到 1.5R~1.9R）。
-          - 若供需區比 2R 更遠或不存在，直接用 2R 位置出場。
-        TP2 不設置（小週期單邊交易不需要持倉等待 3R）。
+        TP 浮動於 2R~3R 之間，根據結構決定：
+          1. 先定出 2R / 3R 兩個目標位
+          2. 在 3R 路徑上掃描阻礙結構（供需區、關鍵支撐阻力）
+          3. 若結構完全暢通 → 使用 3R
+          4. 若有阻礙在 2R~3R 之間 → 在阻礙前 0.1% 停利（最少 2R）
+          5. 若阻礙在 2R 之前 → 提前停利（允許縮到 1.8R，但低於 2R 仍觸發 RR 過濾）
         """
-        tp_target = price + risk * 2.0 if direction == "LONG" else price - risk * 2.0
+        tp_2r = price + risk * 2.0 if direction == "LONG" else price - risk * 2.0
+        tp_3r = price + risk * 3.0 if direction == "LONG" else price - risk * 3.0
 
         if direction == "LONG":
-            # 檢查 2R 之前是否有供給區阻礙
+            # 收集 3R 路徑上的所有障礙位（供給區底 / 關鍵阻力）
+            barriers = []
             sz = daily["supply_zone"]
-            if sz and sz["bottom"] > price and sz["bottom"] < tp_target:
-                # 在供給區底部前 0.1% 出場
-                tp1 = sz["bottom"] * 0.999
-            else:
-                tp1 = tp_target
-        else:
-            # 檢查 2R 之前是否有需求區阻礙
-            dz = daily["demand_zone"]
-            if dz and dz["top"] < price and dz["top"] > tp_target:
-                tp1 = dz["top"] * 1.001
-            else:
-                tp1 = tp_target
+            if sz and sz["bottom"] > price:
+                barriers.append(sz["bottom"])
+            for r in daily.get("resistances", []):
+                if r > price:
+                    barriers.append(r)
 
-        return tp1, None  # TP2 不設置，專注 2R 快速出場
+            # 找出介於現價與 3R 之間最近的障礙
+            relevant = sorted([b for b in barriers if b < tp_3r])
+            if not relevant:
+                tp1 = tp_3r                        # 路徑暢通 → 3R
+            elif relevant[-1] < tp_2r:
+                tp1 = relevant[-1] * 0.999         # 障礙在 2R 前 → 提前離場
+            else:
+                tp1 = relevant[0] * 0.999          # 障礙在 2R~3R 間 → 障礙前停利
+        else:
+            barriers = []
+            dz = daily["demand_zone"]
+            if dz and dz["top"] < price:
+                barriers.append(dz["top"])
+            for s in daily.get("supports", []):
+                if s < price:
+                    barriers.append(s)
+
+            relevant = sorted([b for b in barriers if b > tp_3r], reverse=True)
+            if not relevant:
+                tp1 = tp_3r
+            elif relevant[-1] > tp_2r:
+                tp1 = relevant[-1] * 1.001
+            else:
+                tp1 = relevant[0] * 1.001
+
+        return tp1, None
 
 
 # ── helpers ──────────────────────────────────

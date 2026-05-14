@@ -70,21 +70,12 @@ def analyze_symbol(sym: dict, analyzer: PriceActionAnalyzer, bot: TelegramBot,
         bot.send_message(format_full_analysis(analysis, symbol=display))
         return
 
-    # 信號模式
-    if sig["risk_too_high"] and sig["score"] >= 5:
-        logger.info("Risk too high → skip notice")
-        bot.send_message(format_risk_skip(analysis, symbol=display))
-
-    elif sig["has_signal"] and sig["score"] >= 7:
-        logger.info("STRONG signal → alert")
+    # 信號模式：僅 SOP 9/9 全過才發通知，其餘靜默
+    if sig["has_signal"]:
+        logger.info("SOP 9/9 PASS → alert")
         bot.send_message(format_signal_alert(analysis, symbol=display))
-
-    elif sig["has_signal"] and sig["score"] >= 5:
-        logger.info("MODERATE signal → summary")
-        bot.send_message(format_full_analysis(analysis, symbol=display))
-
     else:
-        logger.info("No signal. Silent.")
+        logger.info("SOP %d/9 → silent", sig["score"])
 
 
 def main():
