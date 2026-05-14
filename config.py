@@ -9,7 +9,7 @@ TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 CHAT_ID        = os.environ.get("CHAT_ID", "")
 
 SYMBOL        = "BTCUSDT"
-EXCHANGE_BASE = "https://api.bybit.com"
+EXCHANGE_BASE = "https://api.kraken.com"
 
 # 時間框架
 TF_DAILY = "1d"
