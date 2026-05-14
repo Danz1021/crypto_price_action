@@ -1,5 +1,6 @@
 """
-binance_api.py — Binance 公開 API 資料抓取模組
+binance_api.py — Bybit 公開 API 資料抓取模組
+（原 Binance API 因 GitHub Actions 美國 IP 被 451 封鎖，改用 Bybit）
 """
 
 import time
@@ -9,8 +10,18 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
+# Bybit interval 對照表
+_INTERVAL_MAP = {
+    "1d":  "D",
+    "4h":  "240",
+    "1h":  "60",
+    "15m": "15",
+    "5m":  "5",
+}
+
+
 class BinanceAPI:
-    """Binance 公開 REST API 封裝，無需 API Key"""
+    """Bybit V5 公開 REST API 封裝，無需 API Key"""
 
     def __init__(self, base_url: str, symbol: str):
         self.base_url = base_url
@@ -23,10 +34,12 @@ class BinanceAPI:
         取得 K 線資料並回傳 DataFrame。
         欄位：open, high, low, close, volume，index 為 UTC datetime。
         """
-        url = f"{self.base_url}/api/v3/klines"
+        bybit_interval = _INTERVAL_MAP.get(interval, interval)
+        url    = f"{self.base_url}/v5/market/kline"
         params = {
+            "category": "spot",
             "symbol":   self.symbol,
-            "interval": interval,
+            "interval": bybit_interval,
             "limit":    min(limit, 1000),
         }
 
@@ -34,10 +47,12 @@ class BinanceAPI:
             try:
                 resp = self.session.get(url, params=params, timeout=10)
                 resp.raise_for_status()
-                raw = resp.json()
-                return self._parse(raw)
+                data = resp.json()
+                if data.get("retCode") != 0:
+                    raise ValueError(f"Bybit error: {data.get('retMsg')}")
+                return self._parse(data["result"]["list"])
             except Exception as exc:
-                logger.warning("Binance API attempt %d failed: %s", attempt + 1, exc)
+                logger.warning("Bybit API attempt %d failed: %s", attempt + 1, exc)
                 if attempt < 2:
                     time.sleep(2 ** attempt)
 
@@ -45,18 +60,29 @@ class BinanceAPI:
 
     def get_current_price(self) -> float:
         """取得最新成交價"""
-        url = f"{self.base_url}/api/v3/ticker/price"
-        resp = self.session.get(url, params={"symbol": self.symbol}, timeout=10)
+        url    = f"{self.base_url}/v5/market/tickers"
+        params = {"category": "spot", "symbol": self.symbol}
+        resp   = self.session.get(url, params=params, timeout=10)
         resp.raise_for_status()
-        return float(resp.json()["price"])
+        data = resp.json()
+        return float(data["result"]["list"][0]["lastPrice"])
 
     @staticmethod
     def _parse(raw: list) -> pd.DataFrame:
-        cols = ["open_time","open","high","low","close","volume",
-                "close_time","quote_vol","trades","buy_base","buy_quote","ignore"]
-        df = pd.DataFrame(raw, columns=cols)
+        # Bybit 回傳格式：[startTime, open, high, low, close, volume, turnover]
+        # 順序為新到舊，需要反轉
+        rows = []
+        for item in reversed(raw):
+            rows.append({
+                "open_time": int(item[0]),
+                "open":      float(item[1]),
+                "high":      float(item[2]),
+                "low":       float(item[3]),
+                "close":     float(item[4]),
+                "volume":    float(item[5]),
+            })
+
+        df = pd.DataFrame(rows)
         df["open_time"] = pd.to_datetime(df["open_time"], unit="ms", utc=True)
         df.set_index("open_time", inplace=True)
-        for col in ["open","high","low","close","volume"]:
-            df[col] = df[col].astype(float)
-        return df[["open","high","low","close","volume"]]
+        return df[["open", "high", "low", "close", "volume"]]

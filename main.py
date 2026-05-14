@@ -17,7 +17,7 @@ import logging
 import argparse
 
 from config import (
-    TELEGRAM_TOKEN, CHAT_ID, SYMBOL, BINANCE_BASE,
+    TELEGRAM_TOKEN, CHAT_ID, SYMBOL, EXCHANGE_BASE,
     TF_DAILY, TF_4H, TF_1H, TF_15M, TF_5M,
 )
 from binance_api  import BinanceAPI
@@ -42,7 +42,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    api      = BinanceAPI(BINANCE_BASE, SYMBOL)
+    api      = BinanceAPI(EXCHANGE_BASE, SYMBOL)
     analyzer = PriceActionAnalyzer()
     bot      = TelegramBot(TELEGRAM_TOKEN, CHAT_ID)
 
